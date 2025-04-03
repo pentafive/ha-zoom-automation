@@ -1,14 +1,11 @@
-# This project is no longer actively maintained
-
-I switched jobs in 2021 and no longer use Zoom so I am unable to continue developing this integration further. I would be happy to transfer ownership or add contributers, and in lieu of that I will review PRs and accept contributions. Please open an issue if you would like to take a more active role in this integration.
-
+# Zoom_Fork - An attempt to get it working :)
 
 [![Last Commit][last-commit-shield]][commits]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 
 [![hacs][hacsbadge]](hacs.json)
-[![Project Maintenance][maintenance-shield]](https://github.com/raman325)
+[![Project Maintenance][maintenance-shield]](https://github.com/pentafive)
 
 [![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
