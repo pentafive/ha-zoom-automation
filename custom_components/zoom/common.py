@@ -19,7 +19,12 @@ from .const import (
     HA_ZOOM_EVENT,
     VERIFICATION_TOKENS,
     WEBHOOK_RESPONSE_SCHEMA,
+    CONF_VERIFICATION_TOKEN,
 )
+
+import hmac
+import hashlib
+import json
 
 _LOGGER = getLogger(__name__)
 
@@ -107,22 +112,49 @@ class ZoomWebhookRequestView(HomeAssistantView):
         hass = request.app["hass"]
         headers = request.headers
         verification_tokens = hass.data.get(DOMAIN, {}).get(VERIFICATION_TOKENS, set())
+        secret_token = None
+        config_entries_zoom = hass.config_entries.async_entries(DOMAIN)
+        if config_entries_zoom:
+            config_entry = config_entries_zoom[0]
+            secret_token = config_entry.data.get(CONF_VERIFICATION_TOKEN)
+
         tokens = headers.getall("authorization")
+
+        _LOGGER.debug(f"Verification Tokens in HA: {verification_tokens}")
+        _LOGGER.debug(f"Authorization Headers from Zoom: {tokens}")
+        _LOGGER.debug(f"Webhook Secret Token from Config Entry: {secret_token}")
 
         for token in tokens:
             if not verification_tokens or (token and token in verification_tokens):
                 try:
                     data = await request.json()
+                    if data.get("event") == "endpoint.url_validation":
+                        plain_token = data.get("payload", {}).get("plainToken")
+                        if plain_token and secret_token:
+                            msg = plain_token.encode('utf-8')
+                            secret = secret_token.encode('utf-8')
+                            hashed = hmac.new(secret, msg, hashlib.sha256).hexdigest()
+                            response_data = {
+                                "plainToken": plain_token,
+                                "encryptedToken": hashed
+                            }
+                            _LOGGER.debug("Responding to URL validation with: %s", response_data)
+                            return Response(body=json.dumps(response_data), status=HTTPStatus.OK, content_type="application/json")
+                        else:
+                            _LOGGER.warning("Plain token or secret token missing for URL validation.")
+                            return Response(status=HTTPStatus.UNAUTHORIZED)
+                    return Response(status=HTTPStatus.OK) # Added return here
+                else:
                     status = WEBHOOK_RESPONSE_SCHEMA(data)
                     _LOGGER.debug("Received event: %s", status)
                     hass.bus.async_fire(f"{HA_ZOOM_EVENT}", {**status, "token": token})
-                except Exception as err:
-                    _LOGGER.warning(
-                        "Received authorized event but unable to parse: %s (%s)",
-                        await request.text(),
-                        err,
-                    )
-                return Response(status=HTTPStatus.OK)
+            except Exception as err:
+                _LOGGER.warning(
+                    "Received authorized event but unable to parse: %s (%s)",
+                    await request.text(),
+                    err,
+                )
+            return Response(status=HTTPStatus.OK)
 
         _LOGGER.warning(
             "Received unauthorized request: %s (Headers: %s)",
@@ -174,6 +206,34 @@ class ZoomContactListDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> List[Dict[str, str]]:
         """Update data via library."""
         try:
-            return await self._api.async_get_contacts(self._contact_types)
+            contacts = []
+            for contact_type in self._contact_types:
+                next_page_token = None
+                while (next_page_token or next_page_token is None) and (
+                    not limit or len(contacts) < limit
+                ):
+                    params = {"type": contact_type, "page_size": 50}
+                    if next_page_token:
+                        params["next_page_token"] = next_page_token
+                    try:
+                        resp = await self._api.async_request(
+                            "get",
+                            f"{BASE_URL}{CONTACT_LIST_URL}",
+                            params=params,
+                            raise_for_status=True,
+                        )
+                    except HTTPUnauthorized:
+                        return []
+
+                    resp_json = await resp.json()
+                    for item in resp_json["contacts"]:
+                        item.update({"contact_type": contact_type})
+                    contacts.extend(resp_json["contacts"])
+
+                    next_page_token = resp_json.get("next_page_token")
+
+            if limit:
+                return contacts[:limit]
+            return contacts
         except Exception as err:
             raise UpdateFailed from err
