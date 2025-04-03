@@ -1,11 +1,11 @@
 {
-    "domain": "zoom",
-    "name": "Zoom",
-    "codeowners": ["@raman325"],
+    "domain": "zoom_fork",
+    "name": "Zoom_form",
+    "codeowners": ["@pentafive"],
     "config_flow": true,
     "dependencies": ["http", "auth"],
-    "documentation": "https://github.com/raman325/ha-zoom-automation",
+    "documentation": "https://github.com/pentafive/ha-zoom-automation",
     "iot_class": "cloud_push",
-    "issue_tracker": "https://github.com/raman325/ha-zoom-automation/issues",
+    "issue_tracker": "https://github.com/pentafive/ha-zoom-automation/issues",
     "version": "v0.0.0"
 }

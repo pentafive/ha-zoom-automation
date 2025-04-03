@@ -1,7 +1,6 @@
-# This project is no longer actively maintained
+# This fork is an attempt to get the addon working.
 
-I switched jobs in 2021 and no longer use Zoom so I am unable to continue developing this integration further. I would be happy to transfer ownership or add contributers, and in lieu of that I will review PRs and accept contributions. Please open an issue if you would like to take a more active role in this integration.
-
+It's still a work in progress.
 
 [![Last Commit][last-commit-shield]][commits]
 [![GitHub Activity][commits-shield]][commits]
