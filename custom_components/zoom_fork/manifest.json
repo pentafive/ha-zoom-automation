@@ -1,6 +1,6 @@
 {
     "domain": "zoom_fork",
-    "name": "Zoom_form",
+    "name": "Zoom_fork",
     "codeowners": ["@pentafive"],
     "config_flow": true,
     "dependencies": ["http", "auth"],
